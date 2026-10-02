@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Profile — QR Attendance</title>
+<link rel="stylesheet" href="/css/style.css" />
+<script src="/js/theme.js"></script>
+</head>
+<body>
+  <div class="navbar navbar-scanner">
+    <h1>Event Scanner</h1>
+    <nav></nav>
+  </div>
+
+  <div class="container">
+    <div class="profile-grid">
+      <div class="card" style="text-align: center;">
+        <div class="profile-photo-placeholder">🧑</div>
+        <h2 id="student-name" style="margin: 0.25rem 0;">Loading…</h2>
+        <p style="color: var(--muted); margin-top: -0.25rem;" id="student-meta"></p>
+        <div class="qr-preview" id="qr-preview"></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+        <div class="card" id="snapshot-card">
+          <h3>AI Snapshot</h3>
+          <div class="panel-dark" id="snapshot-content">Loading…</div>
+        </div>
+
+        <div class="card">
+          <h3>Event History</h3>
+          <div class="panel-dark">
+            <table>
+              <thead>
+                <tr><th>Event</th><th>Date</th><th>Status</th><th>Scanned At</th></tr>
+              </thead>
+              <tbody id="attendance-body">
+                <tr><td colspan="4" style="color: var(--muted);">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadSnapshot() {
+      const container = document.getElementById('snapshot-content');
+      try {
+        const res = await fetch('/api/analytics/me/summary', { credentials: 'include' });
+        const data = await res.json();
+
+        if (!data.success) {
+          container.textContent = data.message;
+          return;
+        }
+
+        if (!data.has_history) {
+          container.textContent = "No events have happened yet — your snapshot will appear once you've had a chance to attend one.";
+          return;
+        }
+
+        const ratePercent = Math.round(data.attendance_rate * 100);
+        let rateLabel, rateColor;
+        if (ratePercent >= 90) { rateLabel = 'Excellent attendance!'; rateColor = '#4ade80'; }
+        else if (ratePercent >= 75) { rateLabel = 'Good attendance — keep it up.'; rateColor = '#4ade80'; }
+        else if (ratePercent >= 50) { rateLabel = "You're getting there — a few more consistent weeks will help."; rateColor = '#fbbf24'; }
+        else { rateLabel = "Let's work on this together — try to catch the next few events."; rateColor = '#fbbf24'; }
+
+        const streakText = data.absence_streak === 0
+          ? 'No missed events recently — nice consistency.'
+          : `${data.absence_streak} event(s) missed in a row. Attending your next one resets this.`;
+
+        const trendText = data.recent_trend < -0.1
+          ? 'Your recent attendance has dipped a bit compared to your overall average.'
+          : data.recent_trend > 0.1
+          ? "You're trending upward recently — great momentum!"
+          : 'Your recent attendance is steady compared to your overall average.';
+
+        container.innerHTML = `
+          <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
+            <div>
+              <div style="font-size: 1.75rem; font-weight: 700; color: ${rateColor};">${ratePercent}%</div>
+              <div style="font-size: 0.85rem;">${rateLabel}</div>
+            </div>
+            <div>
+              <div style="font-size: 1rem; font-weight: 600;">Streak</div>
+              <div style="font-size: 0.85rem;">${streakText}</div>
+            </div>
+            <div>
+              <div style="font-size: 1rem; font-weight: 600;">Trend</div>
+              <div style="font-size: 0.85rem;">${trendText}</div>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        container.textContent = 'Could not load your attendance snapshot.';
+      }
+    }
+
+    async function loadProfile() {
+      try {
+        const res = await fetch('/api/students/me', { credentials: 'include' });
+        const data = await res.json();
+
+        if (!data.success) {
+          document.getElementById('student-name').textContent = 'Not logged in';
+          document.getElementById('student-meta').textContent = data.message || 'Please log in first.';
+          return;
+        }
+
+        const student = data.user;
+        document.getElementById('student-name').textContent = student.name;
+
+        const yearLabels = { 1: '1st Year', 2: '2nd Year', 3: '3rd Year', 4: '4th Year' };
+        const yearText = student.year_level ? yearLabels[student.year_level] : '—';
+        const blockText = student.block ? `Block ${student.block}` : '—';
+        document.getElementById('student-meta').textContent =
+          `${student.student_id} · ${yearText} · ${blockText}`;
+
+        const qrPreview = document.getElementById('qr-preview');
+        qrPreview.innerHTML = student.qr_code
+          ? `<img src="${student.qr_code}" alt="My QR Code" />`
+          : '<p style="color: var(--muted);">No QR code on file.</p>';
+      } catch (err) {
+        document.getElementById('student-name').textContent = 'Error loading profile';
+      }
+    }
+
+    async function loadAttendance() {
+      const tbody = document.getElementById('attendance-body');
+      try {
+        const res = await fetch('/api/attendance/me', { credentials: 'include' });
+        const data = await res.json();
+
+        if (!data.success) {
+          tbody.innerHTML = `<tr><td colspan="4" style="color: var(--muted);">${data.message}</td></tr>`;
+          return;
+        }
+
+        if (data.attendance.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="color: var(--muted);">No attendance recorded yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = data.attendance
+          .map((a) => `<tr>
+            <td>${a.event_title}</td>
+            <td>${a.event_date}</td>
+            <td><span class="badge ${a.status}">${a.status}</span></td>
+            <td>${new Date(a.scanned_at).toLocaleString()}</td>
+          </tr>`)
+          .join('');
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color: var(--muted);">Could not load attendance history.</td></tr>';
+      }
+    }
+
+    loadProfile();
+    loadSnapshot();
+    loadAttendance();
+  </script>
+  <script src="/js/navigation.js"></script>
+</body>
+</html>

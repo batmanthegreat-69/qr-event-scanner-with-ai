@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Dashboard — QR Attendance</title>
+<link rel="stylesheet" href="/css/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body>
+  <div class="navbar">
+    <h1>📋 QR Attendance — Dashboard</h1>
+    <nav>
+      <a href="/dashboard.html" data-role="admin">Dashboard</a>
+      <a href="/events.html" data-role="admin">Events</a>
+      <a href="/students.html" data-role="admin">Students</a>
+      <a href="/analytics.html" data-role="admin">Analytics</a>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="grid" style="margin-bottom: 2rem;">
+      <div class="card stat-card">
+        <div class="value" id="stat-students">—</div>
+        <div class="label">Total Students</div>
+      </div>
+      <div class="card stat-card">
+        <div class="value" id="stat-events">—</div>
+        <div class="label">Total Events</div>
+      </div>
+      <div class="card stat-card">
+        <div class="value" id="stat-present">—</div>
+        <div class="label">Present Scans</div>
+      </div>
+      <div class="card stat-card">
+        <div class="value" id="stat-late">—</div>
+        <div class="label">Late Scans</div>
+      </div>
+    </div>
+
+    <div class="grid wide-narrow-grid">
+      <div class="card">
+        <h3>Recent Scans</h3>
+        <table>
+          <thead>
+            <tr><th>Student</th><th>Event</th><th>Status</th><th>Time</th></tr>
+          </thead>
+          <tbody id="recent-scans-body"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Turnout Prediction</h3>
+        <label for="predict-event-select">Select upcoming event</label>
+        <select id="predict-event-select"></select>
+        <button class="btn" id="predict-btn">Predict Turnout</button>
+        <canvas id="turnout-chart" style="margin-top: 1.5rem;"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 1.25rem;">
+      <h3> Students At Risk of Poor Attendance</h3>
+      <p style="color: var(--muted); font-size: 0.85rem; margin-top: -0.5rem;">
+        Predicted by a classifier trained on attendance rate, lateness, absence streaks, and recent trend.
+      </p>
+      <table>
+        <thead>
+          <tr><th>Student</th><th>Attendance Rate</th><th>Absence Streak</th><th>Trend</th><th>Risk</th></tr>
+        </thead>
+        <tbody id="risk-students-body">
+          <tr><td colspan="5" style="color: var(--muted);">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin-top: 1.25rem;">
+      <h3> Unusual Scan Activity</h3>
+      <p style="color: var(--muted); font-size: 0.85rem; margin-top: -0.5rem;">
+        Flagged using z-score analysis — scans that are statistically unusual compared to that
+        student's own normal pattern (not compared to other students).
+      </p>
+      <table>
+        <thead>
+          <tr><th>Student</th><th>Event</th><th>Minutes Late</th><th>Their Usual</th><th>Z-score</th></tr>
+        </thead>
+        <tbody id="anomalies-body">
+          <tr><td colspan="5" style="color: var(--muted);">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin-top: 1.25rem;">
+      <h3>🎓 Students</h3>
+      <div class="filter-row">
+        <div>
+          <label for="filter-year-level">Year Level</label>
+          <select id="filter-year-level" style="margin-bottom:0;">
+            <option value="">All Years</option>
+            <option value="1">1st Year</option>
+            <option value="2">2nd Year</option>
+            <option value="3">3rd Year</option>
+            <option value="4">4th Year</option>
+          </select>
+        </div>
+        <div>
+          <label for="filter-block">Block</label>
+          <select id="filter-block" style="margin-bottom:0;">
+            <option value="">All Blocks</option>
+            <option value="A">Block A</option>
+            <option value="B">Block B</option>
+          </select>
+        </div>
+        <button class="btn secondary" id="filter-students-btn">Filter</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Student ID</th><th>Year</th><th>Block</th></tr>
+        </thead>
+        <tbody id="students-body">
+          <tr><td colspan="4" style="color: var(--muted);">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin-top: 1.25rem;">
+      <h3>🧩 Student Behavior Groups</h3>
+      <p style="color: var(--muted); font-size: 0.85rem; margin-top: -0.5rem;">
+        Found automatically with k-means clustering — no predefined categories, just natural
+        groupings in attendance rate, lateness, and trend.
+      </p>
+      <div id="clusters-container" class="grid">
+        <p style="color: var(--muted);">Loading…</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/admin-analytics.js"></script>
+  <script src="/js/navigation.js"></script>
+  <script src="/js/theme.js"></script>
+</body>
+</html>

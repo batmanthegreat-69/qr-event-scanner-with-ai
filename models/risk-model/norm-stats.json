@@ -1,0 +1,14 @@
+{
+  "avg_lateness_minutes": {
+    "min": 0,
+    "max": 31.7
+  },
+  "absence_streak": {
+    "min": 0,
+    "max": 6
+  },
+  "recent_trend": {
+    "min": -0.5,
+    "max": 0.3
+  }
+}

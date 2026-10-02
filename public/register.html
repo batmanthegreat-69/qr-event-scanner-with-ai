@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Register — QR Attendance</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="split-layout">
+    <div class="split-left">
+      <div class="split-logo">
+        <img src="/images/school-logo.png" alt="School Logo" />
+      </div>
+      <div class="split-welcome">CREATE ACCOUNT</div>
+    </div>
+
+    <div class="split-right">
+      <div class="card form-card">
+        <h2>Create Account</h2>
+        <form id="register-form">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" required />
+
+          <label for="email">Email</label>
+          <input type="email" id="email" required />
+
+          <label for="password">Password</label>
+          <input type="password" id="password" required minlength="6" />
+
+          <div id="student-fields">
+            <label for="student_id">Student ID</label>
+            <input type="text" id="student_id" />
+
+            <label for="year_level">Year Level</label>
+            <select id="year_level">
+              <option value="">Select year level</option>
+              <option value="1">1st Year</option>
+              <option value="2">2nd Year</option>
+              <option value="3">3rd Year</option>
+              <option value="4">4th Year</option>
+            </select>
+
+            <label for="block">Block</label>
+            <select id="block">
+              <option value="">Select block</option>
+              <option value="A">Block A</option>
+              <option value="B">Block B</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn" style="width:100%;">Register</button>
+        </form>
+
+        <div id="register-status" class="status-msg" style="display:none;"></div>
+        <div class="qr-preview" id="qr-preview"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const studentFields = document.getElementById('student-fields');
+    const studentIdInput = document.getElementById('student_id');
+    const yearLevelSelect = document.getElementById('year_level');
+    const blockSelect = document.getElementById('block');
+
+    function syncStudentFieldRequirements() {
+      studentFields.style.display = 'block';
+      studentIdInput.required = true;
+      yearLevelSelect.required = true;
+      blockSelect.required = true;
+    }
+
+    syncStudentFieldRequirements();
+
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const statusEl = document.getElementById('register-status');
+      const qrPreview = document.getElementById('qr-preview');
+
+      const body = {
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        student_id: studentIdInput.value || undefined,
+        year_level: yearLevelSelect.value ? Number(yearLevelSelect.value) : undefined,
+        block: blockSelect.value || undefined
+      };
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+
+        statusEl.style.display = 'block';
+        if (data.success) {
+          statusEl.className = 'status-msg success';
+          statusEl.textContent = data.message;
+          qrPreview.innerHTML = data.qr_code
+            ? `<p>Student QR Code:</p><img src="${data.qr_code}" alt="Student QR Code" />`
+            : '';
+          document.getElementById('register-form').reset();
+          syncStudentFieldRequirements();
+        } else {
+          statusEl.className = 'status-msg error';
+          statusEl.textContent = data.message;
+        }
+      } catch (err) {
+        statusEl.style.display = 'block';
+        statusEl.className = 'status-msg error';
+        statusEl.textContent = 'Network error during registration';
+      }
+    });
+  </script>
+  <script src="/js/theme.js"></script>
+</body>
+</html>

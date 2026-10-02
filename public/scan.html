@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scan Attendance — QR Attendance</title>
+<link rel="stylesheet" href="/css/style.css" />
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <div class="navbar">
+    <h1>📋 QR Attendance</h1>
+    <nav>
+      <a href="/dashboard.html" data-role="admin">Dashboard</a>
+      <a href="/scan.html" data-role="admin">Scan</a>
+      <a href="/register.html">Register</a>
+      <a href="/login.html">Login</a>
+    </nav>
+  </div>
+
+  <div class="container scanner-wrap">
+    <div class="card">
+      <label for="event-select">Select Event</label>
+      <select id="event-select"></select>
+      <button class="btn" id="start-scan-btn">Start Camera & Scan</button>
+      <div id="qr-reader"></div>
+      <div id="status-msg" class="status-msg" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script src="/js/scanner.js"></script>
+  <script src="/js/navigation.js"></script>
+  <script src="/js/theme.js"></script>
+</body>
+</html>

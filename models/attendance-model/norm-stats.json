@@ -1,0 +1,14 @@
+{
+  "day_of_week": {
+    "min": 0,
+    "max": 6
+  },
+  "event_hour": {
+    "min": 7,
+    "max": 20
+  },
+  "total_registered_students": {
+    "min": 21,
+    "max": 299
+  }
+}
