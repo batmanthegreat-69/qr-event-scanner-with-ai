@@ -1,6 +1,8 @@
-// public/js/analytics.js
-// Fetches dashboard summary metrics and per-event ML turnout predictions,
-// then renders them with Chart.js.
+// public/js/admin-analytics.js
+// Fetches dashboard data and renders it. Reuses the existing 'badge present'
+// / 'badge late' class pattern (which style.css already re-themes onto
+// Bootstrap colors) for risk/anomaly/cluster badges too, instead of adding
+// new CSS for it.
 
 let turnoutChart = null;
 
@@ -61,18 +63,13 @@ async function predictTurnout() {
         {
           label: event.title,
           data: [total_registered_students, prediction.estimated_attendees],
-          backgroundColor: ['#c7d2fe', '#4f46e5']
+          backgroundColor: ['#cfe2ff', '#0d6efd']
         }
       ]
     },
     options: {
       responsive: true,
-      plugins: {
-        title: {
-          display: true,
-          text: `Predicted turnout: ${prediction.predicted_turnout_percent}`
-        }
-      },
+      plugins: { title: { display: true, text: `Predicted turnout: ${prediction.predicted_turnout_percent}` } },
       scales: { y: { beginAtZero: true } }
     }
   });
@@ -85,16 +82,14 @@ async function loadRiskStudents() {
     const data = await res.json();
 
     if (!data.success) {
-      tbody.innerHTML = `<tr><td colspan="5" style="color: var(--muted);">${data.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="text-muted">${data.message}</td></tr>`;
       return;
     }
-
     if (data.students.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="color: var(--muted);">No students with enough event history yet.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="text-muted">No students with enough event history yet.</td></tr>`;
       return;
     }
 
-    // Show top at-risk students first; cap the list so the dashboard stays readable.
     tbody.innerHTML = data.students
       .slice(0, 10)
       .map((s) => {
@@ -110,7 +105,7 @@ async function loadRiskStudents() {
       })
       .join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="5" style="color: var(--muted);">Could not load risk data.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="text-muted">Could not load risk data.</td></tr>`;
   }
 }
 
@@ -121,12 +116,11 @@ async function loadAnomalies() {
     const data = await res.json();
 
     if (!data.success) {
-      tbody.innerHTML = `<tr><td colspan="5" style="color: var(--muted);">${data.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="text-muted">${data.message}</td></tr>`;
       return;
     }
-
     if (data.anomalies.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="color: var(--muted);">No unusual scans detected.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="text-muted">No unusual scans detected.</td></tr>`;
       return;
     }
 
@@ -141,7 +135,7 @@ async function loadAnomalies() {
       </tr>`)
       .join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="5" style="color: var(--muted);">Could not load anomaly data.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="text-muted">Could not load anomaly data.</td></tr>`;
   }
 }
 
@@ -152,42 +146,50 @@ async function loadClusters() {
     const data = await res.json();
 
     if (!data.success) {
-      container.innerHTML = `<p style="color: var(--muted);">${data.message}</p>`;
+      container.innerHTML = `<p class="text-muted">${data.message}</p>`;
       return;
     }
 
-    const badgeClassByLabel = {
-      'Reliable': 'present',
-      'Occasional Issues': 'late',
-      'Needs Attention': 'late'
-    };
+    const badgeClassByLabel = { 'Reliable': 'present', 'Occasional Issues': 'late', 'Needs Attention': 'late' };
+    const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[character]);
 
     container.innerHTML = data.groups
       .map((group) => {
         const badgeClass = badgeClassByLabel[group.cluster_label] || 'present';
-        // Show year/block next to each name when the backend provides it
-        // (e.g. "Juan Dela Cruz (2A)"), falling back to just the name otherwise.
         const names = group.students
-          .map((s) => (s.year_level && s.block ? `${s.name} (${s.year_level}${s.block})` : s.name))
-          .join(', ');
-        return `<div class="card">
-          <span class="badge ${badgeClass}">${group.cluster_label}</span>
-          <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--muted);">
-            ${group.students.length} student(s)
-          </p>
-          <p style="font-size: 0.85rem;">${names}</p>
+          .map((student) => {
+            const details = student.year_level && student.block
+              ? ` (${escapeHtml(student.year_level)}${escapeHtml(student.block)})`
+              : '';
+            return `<li>${escapeHtml(student.name)}${details}</li>`;
+          })
+          .join('');
+        const count = group.students.length;
+        return `<div class="card shadow-sm cluster-card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center gap-2">
+              <span class="badge ${badgeClass}">${escapeHtml(group.cluster_label)}</span>
+              <span class="text-muted small">${count} student${count === 1 ? '' : 's'}</span>
+            </div>
+            <details class="cluster-details mt-3">
+              <summary>View student${count === 1 ? '' : 's'}</summary>
+              <ul class="cluster-student-list list-unstyled mb-0 mt-2">${names}</ul>
+            </details>
+          </div>
         </div>`;
       })
       .join('');
   } catch (err) {
-    container.innerHTML = `<p style="color: var(--muted);">Could not load student groups.</p>`;
+    container.innerHTML = `<p class="text-muted">Could not load student groups.</p>`;
   }
 }
 
-/**
- * Loads the student roster into the "Students" table, optionally filtered
- * by year level and/or block via the dropdowns above the table.
- */
 async function loadStudents() {
   const tbody = document.getElementById('students-body');
   const yearLevel = document.getElementById('filter-year-level').value;
@@ -197,19 +199,18 @@ async function loadStudents() {
   if (yearLevel) params.set('year_level', yearLevel);
   if (block) params.set('block', block);
 
-  tbody.innerHTML = `<tr><td colspan="4" style="color: var(--muted);">Loading…</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="4" class="text-muted">Loading…</td></tr>`;
 
   try {
     const res = await fetch(`/api/students?${params.toString()}`, { credentials: 'include' });
     const data = await res.json();
 
     if (!data.success) {
-      tbody.innerHTML = `<tr><td colspan="4" style="color: var(--muted);">${data.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" class="text-muted">${data.message}</td></tr>`;
       return;
     }
-
     if (data.students.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" style="color: var(--muted);">No students match this filter.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" class="text-muted">No students match this filter.</td></tr>`;
       return;
     }
 
@@ -226,7 +227,7 @@ async function loadStudents() {
       )
       .join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="4" style="color: var(--muted);">Could not load students.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="text-muted">Could not load students.</td></tr>`;
   }
 }
 
@@ -239,4 +240,4 @@ loadRiskStudents();
 loadAnomalies();
 loadClusters();
 loadStudents();
-setInterval(loadSummary, 10000); // refresh "real-time" metrics every 10s
+setInterval(loadSummary, 10000);
